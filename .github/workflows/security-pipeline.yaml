@@ -1,0 +1,67 @@
+name: Security Pipeline
+on:
+  workflow_call:
+    inputs:
+      scan_container:
+        required: false
+        type: boolean
+        default: false
+      dockerfile_path:
+        required: false
+        type: string
+        default: "."
+      iac_directory:
+        required: false
+        type: string
+        default: "."
+      semgrep_rules:
+        required: false
+        type: string
+        default: "p/owasp-top-ten"
+
+jobs:
+  secret-scan:
+    name: "🔑 Secret Scanning"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified --results=verified
+
+  sca:
+    name: "📦 Dependency Scan"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: "."
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+          format: "table"
+
+  sast:
+    name: "🔍 SAST"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: semgrep/semgrep-action@v1
+        with:
+          config: ${{ inputs.semgrep_rules }}
+
+  iac-scan:
+    name: "🏗️ IaC Scan"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ${{ inputs.iac_directory }}
+          soft_fail: false
+          framework: terraform,cloudformation,kubernetes,dockerfile
+          check: "HIGH"
+          quiet: true
