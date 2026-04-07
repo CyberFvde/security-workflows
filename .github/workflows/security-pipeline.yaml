@@ -19,7 +19,6 @@ on:
         type: string
         default: "p/owasp-top-ten"
 
-# THIS IS THE FIX: Explicitly grant the pipeline permission to post security alerts
 permissions:
   contents: read
   security-events: write
@@ -52,7 +51,7 @@ jobs:
           exit-code: "1"
       
       - name: Upload Trivy SARIF
-        uses: github/codeql-action/upload-sarif@v4   # Bumped to v4
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
@@ -65,10 +64,11 @@ jobs:
       - uses: semgrep/semgrep-action@v1
         with:
           config: ${{ inputs.semgrep_rules }}
-          generateSarif: "1"
+          # FIX: Pass the SARIF flag as an argument
+          args: "--sarif --output=semgrep.sarif"
       
       - name: Upload Semgrep SARIF
-        uses: github/codeql-action/upload-sarif@v4   # Bumped to v4
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: "semgrep.sarif"
@@ -88,7 +88,7 @@ jobs:
           output_file_path: "checkov.sarif"
       
       - name: Upload Checkov SARIF
-        uses: github/codeql-action/upload-sarif@v4   # Bumped to v4
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: "checkov.sarif"
